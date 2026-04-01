@@ -1,0 +1,4 @@
+pandas>=2.0.0
+apache-airflow>=2.7.0
+flake8>=6.0.0
+autopep8>=2.0.0
