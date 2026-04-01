@@ -3,6 +3,8 @@ dq_checks.py — Data Quality validation checks
 Project: orders_pipeline
 """
 
+import pandas as pd
+
 
 def check_null_rate(df, column, threshold=0.05):
     """Check if null rate for a column exceeds threshold."""
@@ -26,16 +28,26 @@ def check_duplicate_rate(df, threshold=0.01):
     }
 
 
+def _to_numeric_series(series):
+    """Coerce a series to numeric, turning non-numeric values into NaN."""
+    return pd.to_numeric(series, errors="coerce")
+
+
 def check_amount_range(df, min_val=0, max_val=9999):
-    """Check if amount values fall within expected range."""
+    """Check if amount values fall within expected range (non-numeric treated as invalid)."""
     if "amount" not in df.columns:
         return {"check": "amount_range", "passed": True, "note": "column absent"}
-    valid = df["amount"].dropna().apply(lambda x: min_val <= x <= max_val)
+    numeric = _to_numeric_series(df["amount"])
+    non_numeric = df["amount"].notna() & numeric.isna()
+    non_numeric_count = int(non_numeric.sum())
+    in_range = numeric.dropna().between(min_val, max_val).all()
+    passed = bool(in_range) and non_numeric_count == 0
     return {
         "check": "amount_range",
         "min": min_val,
         "max": max_val,
-        "passed": bool(valid.all()),
+        "non_numeric_count": non_numeric_count,
+        "passed": passed,
     }
 
 
@@ -43,12 +55,13 @@ def check_quantity_range(df, min_val=1, max_val=100):
     """Check if quantity values fall within expected range."""
     if "quantity" not in df.columns:
         return {"check": "quantity_range", "passed": True, "note": "column absent"}
-    valid = df["quantity"].dropna().apply(lambda x: min_val <= x <= max_val)
+    numeric = _to_numeric_series(df["quantity"])
+    in_range = numeric.dropna().between(min_val, max_val).all()
     return {
         "check": "quantity_range",
         "min": min_val,
         "max": max_val,
-        "passed": bool(valid.all()),
+        "passed": bool(in_range),
     }
 
 

@@ -14,10 +14,11 @@ def normalize_status(df):
 
 
 def flag_negative_amounts(df):
-    """Flag negative amount values as invalid."""
+    """Flag negative or non-numeric amount values as invalid."""
     if "amount" in df.columns:
-        df["amount_valid"] = df["amount"].apply(
-            lambda x: False if pd.notna(x) and x < 0 else True
+        numeric = pd.to_numeric(df["amount"], errors="coerce")
+        df["amount_valid"] = numeric.apply(
+            lambda x: False if pd.notna(x) and x < 0 else pd.notna(x)
         )
     return df
 
